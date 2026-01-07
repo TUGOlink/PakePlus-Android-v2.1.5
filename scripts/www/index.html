@@ -1,11 +1,789 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机拨号软件</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#007AFF',
+                        secondary: '#5AC8FA',
+                        success: '#34C759',
+                        danger: '#FF3B30',
+                        warning: '#FF9500',
+                        info: '#5AC8FA',
+                        dark: '#1C1C1E',
+                        'dark-secondary': '#2C2C2E',
+                        'dark-tertiary': '#3A3A3C',
+                        'light-text': '#FFFFFF',
+                        'gray-text': '#8E8E93'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'inner-lg': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass-effect {
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .key-press {
+                transform: scale(0.95);
+                transition: transform 0.1s ease;
+            }
+            .tab-active {
+                color: theme('colors.primary');
+                border-bottom: 2px solid theme('colors.primary');
+            }
+            .contact-avatar {
+                @apply flex items-center justify-center rounded-full text-white font-medium;
+                background-color: theme('colors.primary');
+            }
+            .contact-avatar-colored {
+                background-color: var(--avatar-color);
+            }
+            .call-type-icon {
+                @apply w-5 h-5 flex items-center justify-center rounded-full text-xs text-white;
+            }
+            .call-incoming {
+                background-color: theme('colors.success');
+            }
+            .call-outgoing {
+                background-color: theme('colors.primary');
+            }
+            .call-missed {
+                background-color: theme('colors.danger');
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark text-light-text min-h-screen flex flex-col">
+    <!-- 顶部状态栏 -->
+    <header class="bg-dark-secondary py-4 px-6 flex justify-between items-center">
+        <div class="text-xl font-semibold">手机</div>
+        <div class="flex space-x-4">
+            <button class="text-gray-text hover:text-light-text transition-colors" onclick="showSearch()">
+                <i class="fa fa-search text-lg"></i>
+            </button>
+            <button class="text-gray-text hover:text-light-text transition-colors" onclick="showMenu()">
+                <i class="fa fa-ellipsis-v text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 flex flex-col">
+        <!-- 标签页导航 -->
+        <div class="bg-dark-secondary flex border-b border-dark-tertiary">
+            <button id="tab-keypad" class="tab-active flex-1 py-4 text-center font-medium">
+                拨号键盘
+            </button>
+            <button id="tab-contacts" class="flex-1 py-4 text-center font-medium text-gray-text">
+                联系人
+            </button>
+            <button id="tab-recents" class="flex-1 py-4 text-center font-medium text-gray-text">
+                通话记录
+            </button>
+        </div>
+
+        <!-- 拨号键盘页面 -->
+        <div id="page-keypad" class="flex-1 flex flex-col">
+            <!-- 号码显示区域 -->
+            <div class="p-6 flex flex-col items-center justify-center">
+                <div id="number-display" class="text-4xl font-light tracking-wider text-center mb-2">
+                    10086
+                </div>
+                <div id="number-suggestion" class="text-gray-text text-sm mb-4">
+                    中国移动
+                </div>
+                <div id="dial-suggestions" class="w-full max-w-xs">
+                    <!-- 智能拨号预测结果将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 数字键盘 -->
+            <div class="grid grid-cols-3 gap-4 p-6 bg-dark-secondary">
+                <!-- 第一行 -->
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="1">
+                    <span>1</span>
+                    <span class="text-xs text-gray-text mt-1"></span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="2">
+                    <span>2</span>
+                    <span class="text-xs text-gray-text mt-1">ABC</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="3">
+                    <span>3</span>
+                    <span class="text-xs text-gray-text mt-1">DEF</span>
+                </button>
+
+                <!-- 第二行 -->
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="4">
+                    <span>4</span>
+                    <span class="text-xs text-gray-text mt-1">GHI</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="5">
+                    <span>5</span>
+                    <span class="text-xs text-gray-text mt-1">JKL</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="6">
+                    <span>6</span>
+                    <span class="text-xs text-gray-text mt-1">MNO</span>
+                </button>
+
+                <!-- 第三行 -->
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="7">
+                    <span>7</span>
+                    <span class="text-xs text-gray-text mt-1">PQRS</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="8">
+                    <span>8</span>
+                    <span class="text-xs text-gray-text mt-1">TUV</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="9">
+                    <span>9</span>
+                    <span class="text-xs text-gray-text mt-1">WXYZ</span>
+                </button>
+
+                <!-- 第四行 -->
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="*">
+                    <span>*</span>
+                    <span class="text-xs text-gray-text mt-1"></span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="0">
+                    <span>0</span>
+                    <span class="text-xs text-gray-text mt-1">+</span>
+                </button>
+                <button class="dial-key bg-dark-tertiary rounded-full h-16 flex flex-col items-center justify-center text-2xl" data-value="#">
+                    <span>#</span>
+                    <span class="text-xs text-gray-text mt-1"></span>
+                </button>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="flex justify-between p-6 bg-dark-secondary">
+                <button id="btn-delete" class="bg-dark-tertiary rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-80 transition-colors" onclick="deleteLastNumber()">
+                    <i class="fa fa-backspace text-xl"></i>
+                </button>
+                <button id="btn-dial" class="bg-primary rounded-full w-16 h-16 flex items-center justify-center">
+                    <i class="fa fa-phone text-2xl"></i>
+                </button>
+                <button id="btn-voice" class="bg-dark-tertiary rounded-full w-12 h-12 flex items-center justify-center">
+                    <i class="fa fa-microphone text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 联系人页面 -->
+        <div id="page-contacts" class="flex-1 flex flex-col hidden">
+            <!-- 搜索栏 -->
+            <div class="p-4 bg-dark-secondary">
+                <div class="relative">
+                    <input type="text" id="contact-search" placeholder="搜索联系人" class="w-full bg-dark-tertiary rounded-lg py-3 px-10 text-light-text">
+                    <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-text"></i>
+                </div>
+            </div>
+
+            <!-- 常用联系人 -->
+            <div class="p-4">
+                <h2 class="text-lg font-medium mb-3">常用联系人</h2>
+                <div id="favorite-contacts" class="grid grid-cols-4 gap-4">
+                    <!-- 常用联系人将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 联系人列表 -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="contact-list" class="divide-y divide-dark-tertiary">
+                    <!-- 联系人列表将在这里显示 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 通话记录页面 -->
+        <div id="page-recents" class="flex-1 flex flex-col hidden">
+            <!-- 通话记录筛选 -->
+            <div class="flex border-b border-dark-tertiary">
+                <button class="recent-filter flex-1 py-3 text-center text-sm font-medium tab-active">全部</button>
+                <button class="recent-filter flex-1 py-3 text-center text-sm font-medium text-gray-text">未接</button>
+                <button class="recent-filter flex-1 py-3 text-center text-sm font-medium text-gray-text">已接</button>
+                <button class="recent-filter flex-1 py-3 text-center text-sm font-medium text-gray-text">拨出</button>
+            </div>
+
+            <!-- 通话记录列表 -->
+            <div class="flex-1 overflow-y-auto">
+                <div id="recent-list" class="divide-y divide-dark-tertiary">
+                    <!-- 通话记录将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 清空按钮 -->
+            <div class="p-4 bg-dark-secondary">
+                <button id="clear-recents" class="w-full py-3 bg-dark-tertiary rounded-lg text-gray-text font-medium">
+                    清空通话记录
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 模拟数据 - 联系人
+        const contacts = [
+            { id: 1, name: '张三', phone: '13800138000', avatar: '', isFavorite: true, color: '#FF6B6B' },
+            { id: 2, name: '李四', phone: '13900139000', avatar: '', isFavorite: true, color: '#4ECDC4' },
+            { id: 3, name: '王五', phone: '13700137000', avatar: '', isFavorite: false, color: '#45B7D1' },
+            { id: 4, name: '赵六', phone: '13600136000', avatar: '', isFavorite: true, color: '#96CEB4' },
+            { id: 5, name: '钱七', phone: '13500135000', avatar: '', isFavorite: false, color: '#FFEAA7' },
+            { id: 6, name: '孙八', phone: '13400134000', avatar: '', isFavorite: false, color: '#DDA0DD' },
+            { id: 7, name: '周九', phone: '13300133000', avatar: '', isFavorite: false, color: '#98D8C8' },
+            { id: 8, name: '吴十', phone: '13200132000', avatar: '', isFavorite: false, color: '#F7DC6F' },
+            { id: 9, name: '中国移动', phone: '10086', avatar: '', isFavorite: true, color: '#3498DB' },
+            { id: 10, name: '中国联通', phone: '10010', avatar: '', isFavorite: false, color: '#9B59B6' },
+            { id: 11, name: '中国电信', phone: '10000', avatar: '', isFavorite: false, color: '#E74C3C' },
+            { id: 12, name: '紧急救援', phone: '120', avatar: '', isFavorite: false, color: '#E67E22' },
+            { id: 13, name: '报警电话', phone: '110', avatar: '', isFavorite: false, color: '#C0392B' },
+            { id: 14, name: '消防电话', phone: '119', avatar: '', isFavorite: false, color: '#F39C12' }
+        ];
+
+        // 模拟数据 - 通话记录
+        const callLogs = [
+            { id: 1, phone: '13800138000', name: '张三', type: 'incoming', timestamp: Date.now() - 3600000, duration: 120 },
+            { id: 2, phone: '13900139000', name: '李四', type: 'outgoing', timestamp: Date.now() - 7200000, duration: 180 },
+            { id: 3, phone: '13700137000', name: '王五', type: 'missed', timestamp: Date.now() - 10800000, duration: 0 },
+            { id: 4, phone: '10086', name: '中国移动', type: 'incoming', timestamp: Date.now() - 14400000, duration: 240 },
+            { id: 5, phone: '13600136000', name: '赵六', type: 'outgoing', timestamp: Date.now() - 21600000, duration: 90 },
+            { id: 6, phone: '13500135000', name: '钱七', type: 'missed', timestamp: Date.now() - 28800000, duration: 0 },
+            { id: 7, phone: '13400134000', name: '孙八', type: 'incoming', timestamp: Date.now() - 43200000, duration: 300 },
+            { id: 8, phone: '13300133000', name: '周九', type: 'outgoing', timestamp: Date.now() - 86400000, duration: 150 },
+            { id: 9, phone: '13200132000', name: '吴十', type: 'incoming', timestamp: Date.now() - 172800000, duration: 210 },
+            { id: 10, phone: '10010', name: '中国联通', type: 'outgoing', timestamp: Date.now() - 259200000, duration: 60 }
+        ];
+
+        // DOM 元素
+        const tabKeypad = document.getElementById('tab-keypad');
+        const tabContacts = document.getElementById('tab-contacts');
+        const tabRecents = document.getElementById('tab-recents');
+        const pageKeypad = document.getElementById('page-keypad');
+        const pageContacts = document.getElementById('page-contacts');
+        const pageRecents = document.getElementById('page-recents');
+        const numberDisplay = document.getElementById('number-display');
+        const numberSuggestion = document.getElementById('number-suggestion');
+        const dialSuggestions = document.getElementById('dial-suggestions');
+        const dialKeys = document.querySelectorAll('.dial-key');
+        const btnDelete = document.getElementById('btn-delete');
+        const btnDial = document.getElementById('btn-dial');
+        const btnVoice = document.getElementById('btn-voice');
+        const contactSearch = document.getElementById('contact-search');
+        const favoriteContacts = document.getElementById('favorite-contacts');
+        const contactList = document.getElementById('contact-list');
+        const recentList = document.getElementById('recent-list');
+        const clearRecents = document.getElementById('clear-recents');
+        const recentFilters = document.querySelectorAll('.recent-filter');
+
+        // 当前状态
+        let currentNumber = '10086';
+        let currentTab = 'keypad';
+        let currentFilter = 'all';
+
+        // 初始化应用
+        function initApp() {
+            // 加载联系人
+            renderFavoriteContacts();
+            renderContactList();
+            
+            // 加载通话记录
+            renderCallLogs();
+            
+            // 设置事件监听器
+            setupEventListeners();
+            
+            // 初始化拨号预测
+            updateDialSuggestions();
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 标签页切换
+            tabKeypad.addEventListener('click', () => switchTab('keypad'));
+            tabContacts.addEventListener('click', () => switchTab('contacts'));
+            tabRecents.addEventListener('click', () => switchTab('recents'));
+            
+            // 数字键盘按键
+            dialKeys.forEach(key => {
+                key.addEventListener('click', () => {
+                    key.classList.add('key-press');
+                    setTimeout(() => key.classList.remove('key-press'), 100);
+                    appendNumber(key.dataset.value);
+                });
+            });
+            
+            // 删除按钮
+            btnDelete.addEventListener('click', deleteLastNumber);
+            
+            // 拨号按钮
+            btnDial.addEventListener('click', makeCall);
+            
+            // 语音拨号按钮
+            btnVoice.addEventListener('click', () => {
+                alert('语音拨号功能暂未实现');
+            });
+            
+            // 联系人搜索
+            contactSearch.addEventListener('input', () => {
+                const searchTerm = contactSearch.value.toLowerCase();
+                renderContactList(searchTerm);
+            });
+            
+            // 清空通话记录
+            clearRecents.addEventListener('click', () => {
+                if (confirm('确定要清空所有通话记录吗？')) {
+                    // 在实际应用中，这里会清除存储的通话记录
+                    recentList.innerHTML = `
+                        <div class="p-8 text-center text-gray-text">
+                            暂无通话记录
+                        </div>
+                    `;
+                }
+            });
+            
+            // 通话记录筛选
+            recentFilters.forEach((filter, index) => {
+                filter.addEventListener('click', () => {
+                    recentFilters.forEach(f => f.classList.remove('tab-active'));
+                    recentFilters.forEach(f => f.classList.add('text-gray-text'));
+                    filter.classList.add('tab-active');
+                    filter.classList.remove('text-gray-text');
+                    
+                    switch (index) {
+                        case 0:
+                            currentFilter = 'all';
+                            break;
+                        case 1:
+                            currentFilter = 'missed';
+                            break;
+                        case 2:
+                            currentFilter = 'incoming';
+                            break;
+                        case 3:
+                            currentFilter = 'outgoing';
+                            break;
+                    }
+                    
+                    renderCallLogs();
+                });
+            });
+        }
+
+        // 切换标签页
+        function switchTab(tab) {
+            // 更新当前标签
+            currentTab = tab;
+            
+            // 更新标签样式
+            [tabKeypad, tabContacts, tabRecents].forEach(t => {
+                t.classList.remove('tab-active');
+                t.classList.add('text-gray-text');
+            });
+            
+            // 显示对应页面
+            [pageKeypad, pageContacts, pageRecents].forEach(p => p.classList.add('hidden'));
+            
+            switch (tab) {
+                case 'keypad':
+                    tabKeypad.classList.add('tab-active');
+                    tabKeypad.classList.remove('text-gray-text');
+                    pageKeypad.classList.remove('hidden');
+                    break;
+                case 'contacts':
+                    tabContacts.classList.add('tab-active');
+                    tabContacts.classList.remove('text-gray-text');
+                    pageContacts.classList.remove('hidden');
+                    break;
+                case 'recents':
+                    tabRecents.classList.add('tab-active');
+                    tabRecents.classList.remove('text-gray-text');
+                    pageRecents.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // 添加数字到当前输入
+        function appendNumber(value) {
+            currentNumber += value;
+            updateNumberDisplay();
+            updateDialSuggestions();
+        }
+
+        // 删除最后一个数字
+        function deleteLastNumber() {
+            if (currentNumber.length > 0) {
+                currentNumber = currentNumber.slice(0, -1);
+                updateNumberDisplay();
+                updateDialSuggestions();
+            }
+        }
+
+        // 更新号码显示
+        function updateNumberDisplay() {
+            numberDisplay.textContent = formatPhoneNumber(currentNumber);
+            
+            // 查找匹配的联系人名称
+            const matchedContact = contacts.find(contact => 
+                contact.phone === currentNumber || 
+                contact.phone.endsWith(currentNumber)
+            );
+            
+            if (matchedContact) {
+                numberSuggestion.textContent = matchedContact.name;
+                numberSuggestion.classList.remove('text-gray-text');
+                numberSuggestion.classList.add('text-primary');
+            } else {
+                numberSuggestion.textContent = '';
+            }
+        }
+
+        // 格式化电话号码显示
+        function formatPhoneNumber(phone) {
+            if (!phone) return '';
+            
+            // 简单的格式化逻辑
+            if (phone.length === 11) {
+                return `${phone.slice(0, 3)} ${phone.slice(3, 7)} ${phone.slice(7)}`;
+            }
+            
+            return phone;
+        }
+
+        // 更新拨号预测
+        function updateDialSuggestions() {
+            if (!currentNumber) {
+                dialSuggestions.innerHTML = '';
+                return;
+            }
+            
+            // 查找匹配的联系人
+            const matchedContacts = contacts.filter(contact => 
+                contact.phone.includes(currentNumber) || 
+                contact.name.toLowerCase().includes(currentNumber)
+            );
+            
+            if (matchedContacts.length > 0) {
+                dialSuggestions.innerHTML = matchedContacts.slice(0, 3).map(contact => `
+                    <div class="flex items-center justify-between p-3 bg-dark-tertiary rounded-lg mb-2 cursor-pointer hover:bg-opacity-80 transition-colors" onclick="window.setNumber('${contact.phone}')">
+                        <div class="flex items-center">
+                            <div class="contact-avatar contact-avatar-colored w-10 h-10 mr-3" style="--avatar-color: ${contact.color}">
+                                ${contact.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-medium">${contact.name}</div>
+                                <div class="text-sm text-gray-text">${formatPhoneNumber(contact.phone)}</div>
+                            </div>
+                        </div>
+                        <button class="text-primary" onclick="event.stopPropagation(); window.makeCallTo('${contact.phone}')">
+                            <i class="fa fa-phone"></i>
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                dialSuggestions.innerHTML = '';
+            }
+        }
+
+        // 设置当前号码
+        function setNumber(number) {
+            currentNumber = number;
+            updateNumberDisplay();
+            updateDialSuggestions();
+        }
+
+        // 拨打电话
+        function makeCall() {
+            if (!currentNumber) return;
+            
+            // 尝试使用tel:协议调用设备拨号功能
+            try {
+                // 创建tel链接并尝试打开
+                const telLink = document.createElement('a');
+                telLink.href = `tel:${currentNumber}`;
+                telLink.style.display = 'none';
+                document.body.appendChild(telLink);
+                
+                // 尝试触发点击事件
+                const clickEvent = document.createEvent('MouseEvent');
+                clickEvent.initMouseEvent('click', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
+                telLink.dispatchEvent(clickEvent);
+                
+                // 在移动设备上，这应该会打开原生拨号应用
+                // 如果在浏览器中运行，可能会提示用户或失败
+                
+                // 添加到通话记录
+                const matchedContact = contacts.find(contact => contact.phone === currentNumber);
+                const newCallLog = {
+                    id: Date.now(),
+                    phone: currentNumber,
+                    name: matchedContact ? matchedContact.name : currentNumber,
+                    type: 'outgoing',
+                    timestamp: Date.now(),
+                    duration: Math.floor(Math.random() * 300) + 30 // 30-330秒的随机通话时长
+                };
+                
+                // 添加到通话记录
+                callLogs.unshift(newCallLog);
+                
+                // 如果当前在通话记录页面，更新显示
+                if (currentTab === 'recents') {
+                    renderCallLogs();
+                }
+                
+                // 移除临时链接
+                document.body.removeChild(telLink);
+            } catch (error) {
+                // 如果调用失败（例如在不支持tel:协议的环境中），显示提示
+                alert(`无法拨打电话。在实际移动设备上，这将拨打: ${formatPhoneNumber(currentNumber)}`);
+                console.log('拨打电话失败:', error);
+                
+                // 仍然添加到通话记录以保持功能一致性
+                const matchedContact = contacts.find(contact => contact.phone === currentNumber);
+                const newCallLog = {
+                    id: Date.now(),
+                    phone: currentNumber,
+                    name: matchedContact ? matchedContact.name : currentNumber,
+                    type: 'outgoing',
+                    timestamp: Date.now(),
+                    duration: Math.floor(Math.random() * 300) + 30
+                };
+                
+                callLogs.unshift(newCallLog);
+                if (currentTab === 'recents') {
+                    renderCallLogs();
+                }
+            }
+        }
+
+        // 拨打特定号码
+        function makeCallTo(number) {
+            setNumber(number);
+            makeCall();
+        }
+
+        // 渲染常用联系人
+        function renderFavoriteContacts() {
+            const favorites = contacts.filter(contact => contact.isFavorite);
+            
+            favoriteContacts.innerHTML = favorites.map(contact => `
+                <div class="flex flex-col items-center cursor-pointer" onclick="window.makeCallTo('${contact.phone}')">
+                    <div class="contact-avatar contact-avatar-colored w-16 h-16 mb-1" style="--avatar-color: ${contact.color}">
+                        ${contact.name.charAt(0)}
+                    </div>
+                    <span class="text-xs text-center truncate w-full">${contact.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // 渲染联系人列表
+        function renderContactList(searchTerm = '') {
+            let filteredContacts = contacts;
+            
+            if (searchTerm) {
+                filteredContacts = contacts.filter(contact => 
+                    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    contact.phone.includes(searchTerm)
+                );
+            }
+            
+            // 按姓名首字母排序
+            filteredContacts.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // 按首字母分组
+            const groupedContacts = {};
+            filteredContacts.forEach(contact => {
+                const firstLetter = contact.name.charAt(0).toUpperCase();
+                if (!groupedContacts[firstLetter]) {
+                    groupedContacts[firstLetter] = [];
+                }
+                groupedContacts[firstLetter].push(contact);
+            });
+            
+            // 渲染分组后的联系人
+            contactList.innerHTML = Object.keys(groupedContacts).sort().map(letter => `
+                <div>
+                    <div class="bg-dark-secondary px-4 py-2 text-sm font-medium text-gray-text sticky top-0 z-10">${letter}</div>
+                    ${groupedContacts[letter].map(contact => `
+                        <div class="p-4 flex items-center justify-between cursor-pointer hover:bg-dark-tertiary transition-colors" onclick="window.makeCallTo('${contact.phone}')">
+                            <div class="flex items-center">
+                                <div class="contact-avatar contact-avatar-colored w-12 h-12 mr-4" style="--avatar-color: ${contact.color}">
+                                    ${contact.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="font-medium">${contact.name}</div>
+                                    <div class="text-sm text-gray-text">${formatPhoneNumber(contact.phone)}</div>
+                                </div>
+                            </div>
+                            <button class="text-primary">
+                                <i class="fa fa-phone"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+            
+            if (filteredContacts.length === 0) {
+                contactList.innerHTML = `
+                    <div class="p-8 text-center text-gray-text">
+                        未找到匹配的联系人
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染通话记录
+        function renderCallLogs() {
+            let filteredLogs = callLogs;
+            
+            // 根据当前筛选条件过滤
+            if (currentFilter !== 'all') {
+                filteredLogs = callLogs.filter(log => log.type === currentFilter);
+            }
+            
+            // 按日期分组
+            const groupedLogs = {};
+            filteredLogs.forEach(log => {
+                const date = new Date(log.timestamp);
+                const dateKey = date.toDateString();
+                
+                if (!groupedLogs[dateKey]) {
+                    groupedLogs[dateKey] = [];
+                }
+                groupedLogs[dateKey].push(log);
+            });
+            
+            // 获取日期键并按时间倒序排序
+            const dateKeys = Object.keys(groupedLogs).sort((a, b) => new Date(b) - new Date(a));
+            
+            // 渲染分组后的通话记录
+            recentList.innerHTML = dateKeys.map(dateKey => {
+                const date = new Date(dateKey);
+                let dateLabel = '';
+                
+                // 设置日期标签
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (date >= today) {
+                    dateLabel = '今天';
+                } else if (date >= yesterday) {
+                    dateLabel = '昨天';
+                } else {
+                    dateLabel = `${date.getMonth() + 1}月${date.getDate()}日`;
+                }
+                
+                return `
+                    <div>
+                        <div class="bg-dark-secondary px-4 py-2 text-sm font-medium text-gray-text">${dateLabel}</div>
+                        ${groupedLogs[dateKey].map(log => {
+                            // 获取通话类型图标和样式
+                            let callIcon, callClass;
+                            switch (log.type) {
+                                case 'incoming':
+                                    callIcon = 'fa-arrow-down';
+                                    callClass = 'call-incoming';
+                                    break;
+                                case 'outgoing':
+                                    callIcon = 'fa-arrow-up';
+                                    callClass = 'call-outgoing';
+                                    break;
+                                case 'missed':
+                                    callIcon = 'fa-arrow-down';
+                                    callClass = 'call-missed';
+                                    break;
+                            }
+                            
+                            // 格式化时间
+                            const time = new Date(log.timestamp);
+                            const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+                            
+                            // 格式化通话时长
+                            let durationStr = '';
+                            if (log.duration > 0) {
+                                const minutes = Math.floor(log.duration / 60);
+                                const seconds = log.duration % 60;
+                                durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                            }
+                            
+                            return `
+                                <div class="p-4 flex items-center justify-between hover:bg-dark-tertiary transition-colors">
+                                    <div class="flex items-center flex-1">
+                                        <div class="call-type-icon ${callClass} mr-3">
+                                            <i class="fa ${callIcon}"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="font-medium ${log.type === 'missed' ? 'text-danger' : ''}">${log.name}</div>
+                                            <div class="text-sm text-gray-text">${formatPhoneNumber(log.phone)} ${durationStr}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="text-sm text-gray-text mr-4">${timeStr}</span>
+                                        <button class="text-primary mr-3" onclick="window.makeCallTo('${log.phone}')">
+                                            <i class="fa fa-phone"></i>
+                                        </button>
+                                        <button class="text-gray-text" onclick="window.deleteCallLog(${log.id})">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }).join('');
+            
+            if (filteredLogs.length === 0) {
+                recentList.innerHTML = `
+                    <div class="p-8 text-center text-gray-text">
+                        暂无通话记录
+                    </div>
+                `;
+            }
+        }
+
+        // 删除通话记录
+        function deleteCallLog(id) {
+            const index = callLogs.findIndex(log => log.id === id);
+            if (index !== -1) {
+                callLogs.splice(index, 1);
+                renderCallLogs();
+            }
+        }
+
+        // 显示搜索框
+        function showSearch() {
+            alert('搜索功能暂未实现');
+        }
+        
+        // 显示菜单
+        function showMenu() {
+            alert('菜单功能暂未实现');
+        }
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
 </html>
